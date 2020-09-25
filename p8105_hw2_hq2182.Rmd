@@ -1,0 +1,81 @@
+---
+title: "p8105_hw2_hq2182"
+author: "Hanfei Qi"
+date: "9/24/2020"
+output: html_document
+---
+
+```{r setup, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+## Problem 1
+
+First, define a path to the dataset. 
+
+```{r}
+path_to_data = "./Trash-Wheel-Collection-Totals-8-6-19.xlsx"
+```
+
+Read the Mr. Trashwheel dataset. 
+
+```{r}
+trashwheel_df = 
+	read_xlsx(
+		path = path_to_data,
+		sheet = "Mr. Trash Wheel",
+		range = cell_cols("A:N")) %>% 
+	janitor::clean_names() %>% 
+	drop_na(dumpster) %>% 
+	mutate(
+		sports_balls = round(sports_balls),
+		sports_balls = as.integer(sports_balls)
+	)
+```
+
+Read precipitation data! For 2018 and 2017. 
+
+```{r}
+precip_2018 = 
+	read_excel(
+		"./Trash-Wheel-Collection-Totals-8-6-19.xlsx",
+		sheet = "2018 Precipitation",
+		skip = 1
+	) %>% 
+	janitor::clean_names() %>% 
+	drop_na(month) %>% 
+	mutate(year = 2018) %>% 
+	relocate(year)
+
+precip_2017 = 
+	read_excel(
+		"./Trash-Wheel-Collection-Totals-8-6-19.xlsx",
+		sheet = "2017 Precipitation",
+		skip = 1
+	) %>% 
+	janitor::clean_names() %>% 
+	drop_na(month) %>% 
+	mutate(year = 2017) %>% 
+	relocate(year)
+```
+
+Now combine annual precipitation.
+
+```{r}
+month_df = 
+	tibble(
+		month = 1:12,
+		month_name = month.name
+	)
+
+precip_df = 
+	bind_rows(precip_2018, precip_2017)
+
+left_join(precip_df, month_df, by = "month")
+```
+
+This dataset contains information from the Mr. Trashwheel trash collector in Baltimore, Maryland. As trash enters the inner harbor, the trashwheel collects that trash, and stores it in a dumpster. The dataset contains information on year, month, and trash collected, include some specific kinds of trash. There are a total of `r nrow(trashwheel_df)` rows in our final dataset. Addtional data sheets include month precipitation data.
+
+## Problem 2
+
