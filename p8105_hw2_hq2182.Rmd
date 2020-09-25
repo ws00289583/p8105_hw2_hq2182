@@ -79,3 +79,60 @@ This dataset contains information from the Mr. Trashwheel trash collector in Bal
 
 ## Problem 2
 
+```{r, message = FALSE}
+subway_df = 
+  read_csv(
+    file = "./NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+    col_names = TRUE) %>%
+  janitor::clean_names() %>%
+  select(c(line:entry, vending, ada)) %>% 
+  mutate(entry = recode(
+                        entry, 
+                        `YES` = TRUE,
+                        `NO` = FALSE))
+```
+
+TO DO: Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+
+```{r}
+distinct_station = distinct(
+  subway_df, 
+  station_name, route1, route2, route3, route4, route5, route6, route7, route8, route9, route11,
+  .keep_all = TRUE
+)
+
+station_ada = subset(distinct_station, ada == TRUE)
+station_vending = subset(distinct_station, vending == "YES")
+```
+
+```{r}
+reformat_route = distinct_station %>%
+  mutate(
+    route8 = as.character(route8),
+    route9 = as.character(route9),
+    route10 = as.character(route10),
+    route11 = as.character(route11)) %>% 
+  pivot_longer(
+    route1:route11,
+    names_to = "route_name",
+    values_to = "route_number"
+  )
+
+reformat_distinct_station = distinct(
+  reformat_route, 
+  station_name, route_name, route_number,
+  .keep_all = TRUE
+)
+
+with_number_A = subset(
+  reformat_distinct_station, 
+  route_number == "A")
+
+ada_compliant = subset(
+  reformat_distinct_station,
+  ada = TRUE
+)
+```
+
+## Problem 3
+
