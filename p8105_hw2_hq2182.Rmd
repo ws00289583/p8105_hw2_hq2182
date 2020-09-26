@@ -15,7 +15,7 @@ library(readxl)
 First, define a path to the dataset. 
 
 ```{r}
-path_to_data = "./Trash-Wheel-Collection-Totals-8-6-19.xlsx"
+path_to_data_pb1 = "./Trash-Wheel-Collection-Totals-8-6-19.xlsx"
 ```
 
 Read the Mr. Trashwheel dataset. 
@@ -23,7 +23,7 @@ Read the Mr. Trashwheel dataset.
 ```{r}
 trashwheel_df = 
 	read_xlsx(
-		path = path_to_data,
+		path = path_to_data_pb1,
 		sheet = "Mr. Trash Wheel",
 		range = cell_cols("A:N")) %>% 
 	janitor::clean_names() %>% 
@@ -36,7 +36,7 @@ trashwheel_df =
 
 Read precipitation data! For 2018 and 2017. 
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 precip_2018 = 
 	read_excel(
 		"./Trash-Wheel-Collection-Totals-8-6-19.xlsx",
@@ -135,4 +135,88 @@ ada_compliant = subset(
 ```
 
 ## Problem 3
+
+```{r}
+path_to_pols_data = "./fivethirtyeight_datasets/pols-month.csv"
+path_to_snp_data = "./fivethirtyeight_datasets/snp.csv"
+path_to_unemp_data = "./fivethirtyeight_datasets/unemployment.csv"
+```
+
+```{r pols data, message = FALSE, warning = FALSE}
+pols_df = read_csv(
+  file = path_to_pols_data
+) %>% 
+  janitor::clean_names() %>% 
+  separate(col = mon, 
+           into = c("year", "month_number", "day")) %>% 
+  mutate(
+    year = as.integer(year),
+    month_number = as.integer(month_number),
+    day = as.integer(day)
+  )
+
+lower_month_name = month.name %>% 
+  tolower()
+
+month_df_q3 = 
+	tibble(
+		month_number = 1:12,
+		month = tolower(lower_month_name)
+	)
+
+pols_reform = 
+  left_join(pols_df, month_df_q3, by = "month_number") %>% 
+  select(-month_number) %>% 
+  mutate(
+    president = prez_gop + gov_gop + sen_gop + rep_gop + prez_dem + gov_dem  + sen_dem + rep_dem) %>% 
+  select(-prez_dem, -prez_gop, -day) %>% 
+  relocate(year, month)
+```
+
+```{r snp data, message = FALSE, warning = FALSE}
+snp_df = read_csv(
+  file = path_to_snp_data
+) %>% 
+  janitor::clean_names() %>% 
+  separate(col = date, 
+           into = c("month_number", "day", "year")) %>% 
+  mutate(
+    year = as.integer(year),
+    month_number = as.integer(month_number),
+    day = as.integer(day)
+  )
+
+snp_reform = 
+  left_join(snp_df, month_df_q3, by = "month_number") %>% 
+  select(-month_number, -day) %>% 
+  relocate(year, month)
+```
+
+```{r unemployment data, message = FALSE, warning = FALSE}
+unemp_df = read_csv(
+  file = path_to_unemp_data
+) %>% 
+  janitor::clean_names() %>%
+  pivot_longer(
+    jan:dec,
+    names_to = "month_name",
+    values_to = "unemploy_percent"
+  )
+
+month_df_unemp = 
+	tibble(
+		month_name = c("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"),
+		month = tolower(lower_month_name))
+
+unemp_reform = 
+  left_join(unemp_df, month_df_unemp, by = "month_name") %>% 
+  select(-month_name) %>% 
+  relocate(year, month)
+```
+
+```{r}
+q3_final_df = 
+  left_join(pols_reform, snp_reform, by = "month") %>% 
+  left_join(unemp_reform, by = "month")
+```
 
