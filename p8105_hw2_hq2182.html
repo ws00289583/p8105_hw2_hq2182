@@ -451,7 +451,7 @@ left_join(precip_df, month_df, by = &quot;month&quot;)</code></pre>
 <p>TO DO: Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?</p>
 <pre class="r"><code>distinct_station = distinct(
   subway_df, 
-  station_name, route1, route2, route3, route4, route5, route6, route7, route8, route9, route11,
+  station_name, line,
   .keep_all = TRUE
 )
 
@@ -471,7 +471,7 @@ station_vending = subset(distinct_station, vending == &quot;YES&quot;)</code></p
 
 reformat_distinct_station = distinct(
   reformat_route, 
-  station_name, route_name, route_number,
+  station_name, line,
   .keep_all = TRUE
 )
 
