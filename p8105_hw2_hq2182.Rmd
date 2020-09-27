@@ -11,14 +11,14 @@ library(readxl)
 ```
 
 ## Problem 1
-
+  
 First, define a path to the dataset. 
 
 ```{r}
 path_to_data_pb1 = "./Trash-Wheel-Collection-Totals-8-6-19.xlsx"
 ```
-
-Read the Mr. Trashwheel dataset. 
+  
+Read and clean the Mr. Trashwheel dataset. 
 
 ```{r}
 trashwheel_df = 
@@ -33,7 +33,7 @@ trashwheel_df =
 		sports_balls = as.integer(sports_balls)
 	)
 ```
-
+  
 Read precipitation data! For 2018 and 2017. 
 
 ```{r, message = FALSE, warning = FALSE}
@@ -59,7 +59,7 @@ precip_2017 =
 	mutate(year = 2017) %>% 
 	relocate(year)
 ```
-
+  
 Now combine annual precipitation.
 
 ```{r}
@@ -72,13 +72,17 @@ month_df =
 precip_df = 
 	bind_rows(precip_2018, precip_2017)
 
-left_join(precip_df, month_df, by = "month")
+join_precip = left_join(precip_df, month_df, by = "month")
+join_precip
 ```
 
-This dataset contains information from the Mr. Trashwheel trash collector in Baltimore, Maryland. As trash enters the inner harbor, the trashwheel collects that trash, and stores it in a dumpster. The dataset contains information on year, month, and trash collected, include some specific kinds of trash. There are a total of `r nrow(trashwheel_df)` rows in our final dataset. Addtional data sheets include month precipitation data.
+This dataset contains information from the Mr. Trashwheel trash collector in Baltimore, Maryland. As trash enters the inner harbor, the trashwheel collects that trash, and stores it in a dumpster. The dataset contains information on year, month, and trash collected, include some specific kinds of trash. There are a total of `r nrow(trashwheel_df)` rows in our final dataset. Additional data sheets include month precipitation data from 2017 and 2018, with variables: `r colnames(precip_2018)`.There are a total of `r nrow(join_precip)` rows in our final precipation dataset, with variables: `r colnames(join_precip)`. Total precipitation in 2018 is `r sum(pull(precip_2018, total))`, while there is `r sum(pull(precip_2017, total))` in 2017.
+
+  
 
 ## Problem 2
 
+Read and clean NYC Transit data.
 
 ```{r, message = FALSE}
 subway_df = 
@@ -93,7 +97,12 @@ subway_df =
                         `NO` = FALSE))
 ```
 
-TO DO: Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+The NYC Transit data originally includes `r nrow(subway_df)` rows, with variables: company, line, station name, station latitude/longitude, route number, entrance type, entry/exit only, vending, staffing, staff hour, ada compliant, free crossover. It also includes the station's nearby streets and entrance location.
+
+The final data contains variables: `r colnames(subway_df)`, with `r dim(subway_df)` dimension (row, column). Additionally, the "entry" variable was converted from character to logical. These data are not tidy because variables from a category are separated into different columns such as route1,2,3 ...
+
+  
+Now, find distinct stations, stations with ADA compliant, and station without vending allow entrance.
 
 ```{r}
 distinct_station = distinct(
@@ -103,8 +112,14 @@ distinct_station = distinct(
 )
 
 station_ada = subset(distinct_station, ada == TRUE)
-station_vending = subset(distinct_station, vending == "YES")
+station_no_vending = subset(distinct_station, vending == "NO")
 ```
+
+There are `r nrow(distinct_station)` distinct stations, `r nrow(station_ada)` of them are ADA compliant, `r nrow(station_no_vending) / nrow(distinct_station) * 100`% of their entrances/exit without vending allow entrance.
+
+
+  
+Reformat data so that route number and route name are distinct variables.
 
 ```{r}
 reformat_route = distinct_station %>%
@@ -130,18 +145,30 @@ with_number_A = subset(
   route_number == "A")
 
 ada_compliant = subset(
-  reformat_distinct_station,
+  with_number_A,
   ada == TRUE
 )
 ```
 
+There are `r nrow(reformat_distinct_station)` distinct station, which is the same number as I observed before. `r nrow(with_number_A)` distinct stations serve the A train, `r nrow(ada_compliant)` of them are ADA compliant.
+
+
 ## Problem 3
+  
+Define path to three datesets.
 
 ```{r}
 path_to_pols_data = "./fivethirtyeight_datasets/pols-month.csv"
 path_to_snp_data = "./fivethirtyeight_datasets/snp.csv"
 path_to_unemp_data = "./fivethirtyeight_datasets/unemployment.csv"
 ```
+  
+Read and clean data in pols-month.csv;  
+break variable mon into yaer, month, and day;  
+replace month number with month name;  
+creat variable president with values gop and dem;  
+remove variables prez_dem and prez_gop;  
+remove day variable.
 
 ```{r pols data, message = FALSE, warning = FALSE}
 pols_df = read_csv(
@@ -169,10 +196,16 @@ pols_reform =
   left_join(pols_df, month_df_q3, by = "month_number") %>% 
   select(-month_number) %>% 
   mutate(
-    president = prez_gop + gov_gop + sen_gop + rep_gop + prez_dem + gov_dem  + sen_dem + rep_dem) %>% 
+    president = case_when(
+      prez_dem == 1 ~ "dem",
+      prez_gop == 1 ~ "gop",
+    )) %>% 
   select(-prez_dem, -prez_gop, -day) %>% 
   relocate(year, month)
 ```
+  
+Read, clean, and arrange data in snp.csv;
+move variables year and month to be the leading columns.
 
 ```{r snp data, message = FALSE, warning = FALSE}
 snp_df = read_csv(
@@ -192,6 +225,11 @@ snp_reform =
   select(-month_number, -day) %>% 
   relocate(year, month)
 ```
+  
+Read, clean, and tidy data in unemployment.csv;
+variables Jan:Dec are values in a new variable month_name;
+values of each month are values in a new variable unemploy_percent;
+move variables year and month to be the leading columns.
 
 ```{r unemployment data, message = FALSE, warning = FALSE}
 unemp_df = read_csv(
@@ -214,10 +252,35 @@ unemp_reform =
   select(-month_name) %>% 
   relocate(year, month)
 ```
+  
+Join the datasets by merging snp into pols, and merging unemployment into the result.
 
 ```{r}
 q3_final_df = 
-  left_join(pols_reform, snp_reform, by = "month") %>% 
-  left_join(unemp_reform, by = "month")
+  left_join(pols_reform, snp_reform, by = c("month", "year")) %>% 
+  left_join(unemp_reform, by = c("month", "year"))
 ```
 
+There are three original datasets.  
+The pols-month.csv includes `r nrow(pols_df)` observations of `r ncol(pols_df)` variables. It's related to the number of national politicians who are democratic or republican at any given time.  
+The snp.csv includes `r nrow(snp_df)` observations of `r ncol(snp_df)` variables. It's related to S&P stock index at coordinating time points. S&P represents measure of stock market as a whole.    
+The unemployment.csv includes `r nrow(unemp_df)` observations of `r ncol(unemp_df)` variables. It represents percentage of unemployment in certain time.  
+
+The data arranging steps are described before each code chunk.  
+In conclusion, the final data is the result of left_join three reformed datasets by using keys "month" and "year".  There are `r nrow(q3_final_df)` observations of `r ncol(q3_final_df)` variables in the final dataset. The range of year is `r range(q3_final_df$year)`. The final data contains variables: `r colnames(q3_final_df)`.  
+
+
+Here is the list of variables in the final data:
+
+* year: year of the observation
+* month: month of the observation
+* gov_gop: the number of republican governors on the associated date
+* sen_gop: the number of republican senators on the associated date
+* rep_gop: the number of republican representatives on the associated date
+* gov_dem: the number of democratic governors on the associated date
+* sen_dem: the number of democratic senators on the associated date
+* rep_dem: the number of democratic representatives on the associated date
+* president: indicator of whether the president was republican on the associated date (gop = republican, dem = democratic)
+  * Some values are N/A because of historical events
+* close: the closing values of the S&P stock index on the associated date
+* unemply_percent: percentage of unemployment in associated time
